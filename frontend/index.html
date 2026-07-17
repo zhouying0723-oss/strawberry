@@ -115,10 +115,6 @@
       <div class="error-text" id="errorText"></div>
     </div>
     <div class="drag-hint">Drag model to reposition / Scroll to resize</div>
-    <div id="topUserArea" style="position:absolute;top:16px;right:60px;display:flex;align-items:center;gap:6px;z-index:60;">
-      <span id="usernameTag" style="font-size:12px;color:#e8607a;opacity:0.85;white-space:nowrap;"></span>
-      <button id="logoutBtn" title="退出登录" style="display:none;background:none;border:none;cursor:pointer;font-size:15px;color:#e8607a;padding:0 2px;">🚪</button>
-    </div>
     <button id="panelToggle" title="控制面板">⚙</button>
     <div id="chatPanel">
       <div id="chatResizeHandle"></div>
@@ -202,25 +198,6 @@
 
 <!-- API Key Modal -->
 
-<!-- 登录/注册 Modal -->
-<div class="modal-overlay" id="authModal" style="display:flex;">
-  <div class="modal" style="width:360px;">
-    <h2 id="authTitle">登录草莓软酱</h2>
-    <div id="authTabs" style="display:flex;gap:8px;margin-bottom:16px;">
-      <button id="tabLogin" onclick="switchTab('login')" style="flex:1;padding:6px;border-radius:6px;border:1px solid #f08ca8;background:#f08ca8;color:#fff;cursor:pointer;font-size:13px;">登录</button>
-      <button id="tabRegister" onclick="switchTab('register')" style="flex:1;padding:6px;border-radius:6px;border:1px solid #f0b0c8;background:#fff5f8;color:#e8607a;cursor:pointer;font-size:13px;">注册</button>
-    </div>
-    <input type="text" id="authUsername" placeholder="用户名" autocomplete="username"
-      style="width:100%;padding:8px 12px;border:1px solid #f0b0c8;border-radius:8px;font-size:14px;outline:none;color:#5a3e4b;margin-bottom:10px;box-sizing:border-box;" />
-    <input type="password" id="authPassword" placeholder="密码" autocomplete="current-password"
-      style="width:100%;padding:8px 12px;border:1px solid #f0b0c8;border-radius:8px;font-size:14px;outline:none;color:#5a3e4b;margin-bottom:4px;box-sizing:border-box;" />
-    <div id="authError" style="color:#e8607a;font-size:12px;min-height:18px;margin-bottom:8px;"></div>
-    <div style="display:flex;justify-content:flex-end;">
-      <button id="authSubmitBtn" onclick="submitAuth()"
-        style="padding:8px 24px;border-radius:8px;border:none;background:#f08ca8;color:#fff;font-size:14px;cursor:pointer;">登录</button>
-    </div>
-  </div>
-</div>
 <div class="modal-overlay" id="apiKeyModal">
   <div class="modal">
     <h2>设置 API Key</h2>
@@ -238,7 +215,6 @@ const MODEL_PATH = './【草莓软酱】动态皮套/草莓软酱/草莓软酱.m
 
 // Chat config
 const CHAT_API_URL = 'https://ap-gateway.intra.weibo.com/anthropic/v1/messages';
-const AUTH_API = 'https://zoymonster.com/strawberry-api';
 const CHAT_MODEL = 'weibo/glm-5.2';
 let CHAT_API_KEY = 'sk-wbap-0CeHYYAJKT2ff4EIERPimqzQdbDMCK0a';
 
@@ -536,7 +512,7 @@ async function sendMessage(userText) {
       body: JSON.stringify({
         model: CHAT_MODEL,
         max_tokens: 1024,
-        system: buildSystemPrompt(),
+        system: CHAT_SYSTEM_PROMPT,
         messages: chatHistory,
         stream: true
       })
@@ -590,13 +566,7 @@ async function sendMessage(userText) {
   isStreaming = false;
   document.getElementById('chatSendBtn').disabled = false;
   stopLipSync();
-  // 异步保存本次对话
-  if (currentUser && fullText) {
-    saveChat([
-      { role: 'user', content: userText },
-      { role: 'assistant', content: fullText }
-    ]);
-  }
+
 }
 
 // Chat input handlers
@@ -615,7 +585,7 @@ document.getElementById('chatInput').addEventListener('keydown', (e) => {
 });
 
 // API Key modal
-document.getElementById('apiKeyBtn').addEventListener('click', () => {
+document.getElementById('apiKeyBtn')?.addEventListener('click', () => {
   document.getElementById('apiKeyInput').value = CHAT_API_KEY;
   document.getElementById('apiKeyModal').classList.add('show');
 });
@@ -715,128 +685,5 @@ document.getElementById('chatInput').focus();
 })();
 </script>
 
-<script>
-var _authTab = 'login';
-
-function switchTab(tab) {
-  _authTab = tab;
-  document.getElementById('authTitle').textContent = tab === 'login' ? '登录草莓软酱' : '注册账号';
-  document.getElementById('authSubmitBtn').textContent = tab === 'login' ? '登录' : '注册';
-  document.getElementById('tabLogin').style.background = tab === 'login' ? '#f08ca8' : '#fff5f8';
-  document.getElementById('tabLogin').style.color = tab === 'login' ? '#fff' : '#e8607a';
-  document.getElementById('tabRegister').style.background = tab === 'register' ? '#f08ca8' : '#fff5f8';
-  document.getElementById('tabRegister').style.color = tab === 'register' ? '#fff' : '#e8607a';
-  document.getElementById('authError').textContent = '';
-}
-
-async function submitAuth() {
-  var username = document.getElementById('authUsername').value.trim();
-  var password = document.getElementById('authPassword').value;
-  var errEl = document.getElementById('authError');
-  var btn = document.getElementById('authSubmitBtn');
-  if (!username || !password) { errEl.textContent = '请填写用户名和密码'; return; }
-  btn.disabled = true;
-  btn.textContent = '请稍候...';
-  try {
-    var url = AUTH_API + '/' + (_authTab === 'login' ? 'login' : 'register');
-    var res = await fetch(url, {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ username: username, password: password })
-    });
-    var data = await res.json();
-    if (!res.ok) { errEl.textContent = data.detail || '操作失败'; btn.disabled = false; btn.textContent = _authTab === 'login' ? '登录' : '注册'; return; }
-    if (_authTab === 'register') {
-      errEl.style.color = '#4caf50';
-      errEl.textContent = '注册成功，请登录';
-      errEl.style.color = '#e8607a';
-      switchTab('login');
-      btn.disabled = false; btn.textContent = '登录';
-      return;
-    }
-    // 登录成功
-    localStorage.setItem('sb_token', data.token);
-    localStorage.setItem('sb_username', data.username);
-    await loadUserAndStart(data.token, data.username);
-  } catch(e) {
-    errEl.textContent = '网络错误，请重试';
-    btn.disabled = false;
-    btn.textContent = _authTab === 'login' ? '登录' : '注册';
-  }
-}
-
-async function loadUserAndStart(token, username) {
-  try {
-    var res = await fetch(AUTH_API + '/me', { headers: { 'Authorization': 'Bearer ' + token } });
-    if (!res.ok) { localStorage.removeItem('sb_token'); showAuthModal(); return; }
-    var data = await res.json();
-    currentUser = { username: username, token: token, summary: data.summary || '' };
-    // 恢复历史消息
-    if (data.recent_messages && data.recent_messages.length > 0) {
-      chatHistory = data.recent_messages;
-    }
-    document.getElementById('authModal').style.display = 'none';
-    document.getElementById('usernameTag').textContent = username;
-    document.getElementById('logoutBtn').style.display = '';
-    // 更新打招呼语
-    var greeting = data.summary
-      ? '欢迎回来，' + username + '。上次聊到哪了，继续？'
-      : '草莓软酱在线。股票、基金、期货、外汇都可以问，有什么想聊的？';
-    var msgs = document.getElementById('chatMessages');
-    msgs.innerHTML = '';
-    appendChatMessage('ai', greeting);
-  } catch(e) {
-    showAuthModal();
-  }
-}
-
-function showAuthModal() {
-  document.getElementById('authModal').style.display = 'flex';
-}
-
-async function saveChat(messages) {
-  if (!currentUser) return;
-  try {
-    await fetch(AUTH_API + '/save_history', {
-      method: 'POST',
-      headers: {
-        'Content-Type': 'application/json',
-        'Authorization': 'Bearer ' + currentUser.token
-      },
-      body: JSON.stringify({ messages: messages, summary: '' })
-    });
-  } catch(e) {}
-}
-
-document.getElementById('logoutBtn').addEventListener('click', async function() {
-  if (!currentUser) return;
-  await fetch(AUTH_API + '/logout', {
-    method: 'POST',
-    headers: { 'Authorization': 'Bearer ' + currentUser.token }
-  }).catch(()=>{});
-  localStorage.removeItem('sb_token');
-  localStorage.removeItem('sb_username');
-  currentUser = null;
-  chatHistory = [];
-  document.getElementById('chatMessages').innerHTML = '';
-  document.getElementById('usernameTag').textContent = '';
-  document.getElementById('logoutBtn').style.display = 'none';
-  showAuthModal();
-});
-
-// 回车提交登录
-document.getElementById('authPassword').addEventListener('keydown', function(e) {
-  if (e.key === 'Enter') submitAuth();
-});
-
-// 自动登录
-(async function() {
-  var token = localStorage.getItem('sb_token');
-  var username = localStorage.getItem('sb_username');
-  if (token && username) {
-    await loadUserAndStart(token, username);
-  }
-})();
-</script>
 </body>
 </html>
