@@ -1,0 +1,93 @@
+{
+  "Version": 3,
+  "FileReferences": {
+    "Moc": "https://zoymonster.com/temp/live2d-assets/%E8%8D%89%E8%8E%93%E8%BD%AF%E9%85%B1.moc3",
+    "Textures": [
+      "https://zoymonster.com/temp/live2d-assets/%E8%8D%89%E8%8E%93%E8%BD%AF%E9%85%B1.8192/texture_00.png",
+      "https://zoymonster.com/temp/live2d-assets/%E8%8D%89%E8%8E%93%E8%BD%AF%E9%85%B1.8192/texture_01.png",
+      "https://zoymonster.com/temp/live2d-assets/%E8%8D%89%E8%8E%93%E8%BD%AF%E9%85%B1.8192/texture_02.png"
+    ],
+    "Physics": "草莓软酱.physics3.json",
+    "DisplayInfo": "草莓软酱.cdi3.json",
+    "Expressions": [
+      {
+        "Name": "宠物关",
+        "File": "宠物关.exp3.json"
+      },
+      {
+        "Name": "宠物前移",
+        "File": "宠物前移.exp3.json"
+      },
+      {
+        "Name": "水印",
+        "File": "水印.exp3.json"
+      },
+      {
+        "Name": "眼镜",
+        "File": "眼镜.exp3.json"
+      },
+      {
+        "Name": "背包",
+        "File": "背包.exp3.json"
+      },
+      {
+        "Name": "表情-小嘴",
+        "File": "表情-小嘴.exp3.json"
+      },
+      {
+        "Name": "表情-星星",
+        "File": "表情-星星.exp3.json"
+      },
+      {
+        "Name": "表情-流泪",
+        "File": "表情-流泪.exp3.json"
+      },
+      {
+        "Name": "表情-爱心眼",
+        "File": "表情-爱心眼.exp3.json"
+      },
+      {
+        "Name": "表情-生气",
+        "File": "表情-生气.exp3.json"
+      },
+      {
+        "Name": "表情-金钱眼",
+        "File": "表情-金钱眼.exp3.json"
+      },
+      {
+        "Name": "表情-问号",
+        "File": "表情-问号.exp3.json"
+      },
+      {
+        "Name": "飞头（无脖子",
+        "File": "飞头（无脖子.exp3.json"
+      },
+      {
+        "Name": "飞头（有脖子",
+        "File": "飞头（有脖子.exp3.json"
+      }
+    ],
+    "Motions": {
+      "TapBody": [
+        {
+          "File": "小猫动画.motion3.json",
+          "FadeInTime": 0.5,
+          "FadeOutTime": 0.5
+        }
+      ]
+    }
+  },
+  "Groups": [
+    {
+      "Target": "Parameter",
+      "Name": "LipSync",
+      "Ids": []
+    },
+    {
+      "Target": "Parameter",
+      "Name": "EyeBlink",
+      "Ids": []
+    }
+  ],
+  "HitAreas": []
+}
