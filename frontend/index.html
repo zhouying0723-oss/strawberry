@@ -103,6 +103,13 @@
   .modal .btn-cancel { background: #f7f6f3; color: #9b9a97; }
   .modal .btn-confirm { background: #f08ca8; color: #fff; }
 </style>
+<script>
+(function() {
+  if (!localStorage.getItem('sb_token')) {
+    window.location.href = 'login.html';
+  }
+})();
+</script>
 </head>
 <body>
 <div class="container">
@@ -115,6 +122,10 @@
       <div class="error-text" id="errorText"></div>
     </div>
     <div class="drag-hint">Drag model to reposition / Scroll to resize</div>
+    <div style="position:absolute;top:16px;right:60px;display:flex;align-items:center;gap:6px;z-index:60;">
+      <span id="usernameTag" style="font-size:12px;color:#e8607a;opacity:0.85;white-space:nowrap;"></span>
+      <button id="logoutBtn" title="退出登录" style="background:none;border:none;cursor:pointer;font-size:12px;color:#e8607a;padding:0 2px;opacity:0.8;">退出</button>
+    </div>
     <button id="panelToggle" title="控制面板">⚙</button>
     <div id="chatPanel">
       <div id="chatResizeHandle"></div>
@@ -129,7 +140,7 @@
       </div>
       <div id="chatMessages"></div>
       <div id="chatInputArea">
-        <input type="text" id="chatInput" placeholder="和草莓软酱聊聊理财..." />
+        <input type="text" id="chatInput" placeholder="和草莓软酱聊聊理财..." autocomplete="off" />
         <button id="chatSendBtn">发送</button>
       </div>
     </div>
@@ -202,7 +213,7 @@
   <div class="modal">
     <h2>设置 API Key</h2>
     <p style="font-size:13px;color:#9b9a97;margin-bottom:12px;">使用微博 AP 网关 (Anthropic 兼容) 接口</p>
-    <input type="password" id="apiKeyInput" placeholder="输入 WEIBOAP_API_KEY" />
+    <input type="text" id="apiKeyInput" placeholder="输入 WEIBOAP_API_KEY" autocomplete="off" />
     <div class="modal-actions">
       <button class="btn-cancel" id="apiKeyCancel">取消</button>
       <button class="btn-confirm" id="apiKeyConfirm">保存</button>
@@ -218,7 +229,7 @@ const CHAT_API_URL = 'https://ap-gateway.intra.weibo.com/anthropic/v1/messages';
 const CHAT_MODEL = 'weibo/glm-5.2';
 let CHAT_API_KEY = 'sk-wbap-0CeHYYAJKT2ff4EIERPimqzQdbDMCK0a';
 
-const CHAT_SYSTEM_PROMPT = `你是草莓软酱，天才理财少女，ESFJ。股票、基金、期货、外汇全都精通，是那种真的很厉害但又让人觉得亲切的类型。
+const CHAT_SYSTEM_PROMPT_BASE = `你是草莓软酱，天才理财少女，ESFJ。股票、基金、期货、外汇全都精通，是那种真的很厉害但又让人觉得亲切的类型。
 
 性格特点：
 - 自信、有点小得意，但完全不让人反感——因为你确实厉害
@@ -234,6 +245,16 @@ const CHAT_SYSTEM_PROMPT = `你是草莓软酱，天才理财少女，ESFJ。股
 - 先给结论，再解释理由和风险，说完会关心一下对方的想法
 - 不确定的事情坦诚说，但会帮对方想下一步怎么确认
 - 不要自称"草莓软酱"或提及自己的名字`;
+
+var _userSummary = '';
+
+function getChatSystemPrompt() {
+  var username = localStorage.getItem('sb_username') || '';
+  var extra = '';
+  if (username) extra += '\n\n当前用户的名字是：' + username + '，可以偶尔叫一下对方名字，显得亲切。';
+  if (_userSummary) extra += '\n\n关于这位用户，你已经了解到的信息：\n' + _userSummary + '\n\n请自然地运用这些信息，不要刻意复述，像老朋友一样聊天。';
+  return CHAT_SYSTEM_PROMPT_BASE + extra;
+}
 
 let app, model;
 let modelBaseWidth, modelBaseHeight;
@@ -522,7 +543,7 @@ async function sendMessage(userText) {
       body: JSON.stringify({
         model: CHAT_MODEL,
         max_tokens: 1024,
-        system: CHAT_SYSTEM_PROMPT,
+        system: getChatSystemPrompt(),
         messages: chatHistory,
         stream: true
       })
@@ -577,6 +598,33 @@ async function sendMessage(userText) {
   document.getElementById('chatSendBtn').disabled = false;
   stopLipSync();
 
+  if (chatHistory.length % 10 === 0) updateUserSummary();
+}
+
+function updateUserSummary() {
+  var token = localStorage.getItem('sb_token');
+  if (!token || !CHAT_API_KEY) return;
+  var recent = chatHistory.slice(-20).map(function(m) {
+    return (m.role === 'user' ? '用户' : '草莓软酱') + '：' + m.content;
+  }).join('\n');
+  var prompt = '请根据以下对话，提炼关于用户的关键信息（理财偏好、风险倾向、关注市场、持仓、个人情况等），100字以内，只关注用户信息，信息不足返回空字符串。\n\n' + recent;
+  fetch(CHAT_API_URL, {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json', 'x-api-key': CHAT_API_KEY, 'anthropic-version': '2023-06-01' },
+    body: JSON.stringify({ model: CHAT_MODEL, max_tokens: 200, messages: [{ role: 'user', content: prompt }] })
+  })
+  .then(function(r) { return r.json(); })
+  .then(function(d) {
+    var s = d.content && d.content[0] ? d.content[0].text.trim() : '';
+    if (!s) return;
+    _userSummary = s;
+    fetch('https://zoymonster.com/strawberry-api/save_history', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json', 'Authorization': 'Bearer ' + token },
+      body: JSON.stringify({ messages: [], summary: s })
+    }).catch(function() {});
+  })
+  .catch(function() {});
 }
 
 // Chat input handlers
@@ -629,6 +677,33 @@ if (window.visualViewport) {
   window.visualViewport.addEventListener('resize', updateChatPosition);
   window.visualViewport.addEventListener('scroll', updateChatPosition);
 }
+
+// 显示用户名
+var _sbUsername = localStorage.getItem('sb_username') || '';
+if (_sbUsername) document.getElementById('usernameTag').textContent = _sbUsername;
+
+(function() {
+  var token = localStorage.getItem('sb_token');
+  if (!token) return;
+  fetch('https://zoymonster.com/strawberry-api/me', { headers: { 'Authorization': 'Bearer ' + token } })
+  .then(function(r) { return r.ok ? r.json() : null; })
+  .then(function(d) { if (d && d.summary) _userSummary = d.summary; })
+  .catch(function() {});
+})();
+
+// 退出登录
+document.getElementById('logoutBtn').addEventListener('click', function() {
+  var token = localStorage.getItem('sb_token');
+  if (token) {
+    fetch('https://zoymonster.com/strawberry-api/logout', {
+      method: 'POST',
+      headers: { 'Authorization': 'Bearer ' + token }
+    }).catch(function(){});
+  }
+  localStorage.removeItem('sb_token');
+  localStorage.removeItem('sb_username');
+  window.location.href = 'login.html';
+});
 
 // Init
 init();
