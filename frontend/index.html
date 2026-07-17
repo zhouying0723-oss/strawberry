@@ -65,31 +65,73 @@
   #panelToggle { position: absolute; top: 16px; right: 16px; width: 36px; height: 36px; border-radius: 8px; border: 1px solid #f0b0c8; background: rgba(255,245,248,0.85); color: #e8607a; font-size: 16px; cursor: pointer; display: flex; align-items: center; justify-content: center; z-index: 60; transition: all 0.2s; }
   #panelToggle:hover { background: #ffe0ec; border-color: #e8607a; }
 
-  /* Chat Panel */
-  #chatPanel { position: absolute; left: 0; right: 0; height: 220px; background: rgba(255,245,248,0.95); border-top: 1px solid #f0b0c8; display: flex; flex-direction: column; z-index: 50; bottom: 0; }
-  #chatResizeHandle { height: 6px; cursor: ns-resize; background: transparent; flex-shrink: 0; display: flex; align-items: center; justify-content: center; }
-  #chatResizeHandle::before { content: ''; width: 32px; height: 3px; border-radius: 2px; background: #f0b0c8; }
-  #chatResizeHandle:hover::before { background: #e8607a; }
-  #chatPanel.collapsed { height: 32px; }
-  #chatPanel.collapsed #chatMessages, #chatPanel.collapsed #chatInputArea { display: none; }
-  #chatHeader { display: flex; justify-content: space-between; align-items: center; padding: 6px 12px; background: #fce4ec; font-size: 13px; font-weight: 600; color: #e8607a; flex-shrink: 0; }
-  .chat-header-actions { display: flex; gap: 8px; align-items: center; }
-  .chat-header-actions button { background: none; border: none; cursor: pointer; font-size: 14px; padding: 0 4px; color: #e8607a; }
-  #chatMessages { flex: 1; overflow-y: auto; padding: 8px 12px; font-size: 16px; line-height: 1.6; }
-  #chatMessages::-webkit-scrollbar { width: 4px; }
-  #chatMessages::-webkit-scrollbar-thumb { background: #f0b0c8; border-radius: 2px; }
-  .chat-msg { margin-bottom: 8px; max-width: 80%; }
-  .chat-msg.user { margin-left: auto; text-align: right; }
-  .chat-msg .bubble { display: inline-block; padding: 6px 10px; border-radius: 10px; word-break: break-word; }
-  .chat-msg.user .bubble { background: #f08ca8; color: #fff; border-bottom-right-radius: 2px; }
-  .chat-msg.ai .bubble { background: #fff5f8; color: #5a3e4b; border: 1px solid #f0b0c8; border-bottom-left-radius: 2px; }
-  .chat-msg.ai .typing { opacity: 0.6; }
-  #chatInputArea { display: flex; padding: 8px; gap: 6px; border-top: 1px solid #f0b0c8; flex-shrink: 0; }
-  #chatInput { flex: 1; padding: 8px 12px; border-radius: 8px; border: 1px solid #f0b0c8; background: #fff5f8; color: #5a3e4b; font-size: 16px; outline: none; }
-  #chatInput:focus { border-color: #f08ca8; }
-  #chatSendBtn { padding: 8px 16px; border-radius: 8px; border: none; background: #f08ca8; color: #fff; font-size: 13px; cursor: pointer; white-space: nowrap; }
+  /* Chat - 悬浮气泡区 */
+  #chatMessages {
+    position: absolute; left: 16px; top: 16px; bottom: 72px;
+    width: 44%;
+    overflow-y: auto; overflow-x: hidden;
+    display: flex; flex-direction: column; gap: 8px;
+    z-index: 50; pointer-events: none;
+    padding: 4px 0;
+    justify-content: flex-end;
+  }
+  #chatMessages::-webkit-scrollbar { width: 0; }
+  .chat-msg { max-width: 100%; pointer-events: auto; }
+  .chat-msg.user { align-self: flex-end; text-align: right; }
+  .chat-msg.ai { align-self: flex-start; }
+  .chat-msg .bubble {
+    display: inline-block; padding: 8px 12px;
+    border-radius: 14px; word-break: break-word;
+    font-size: 14px; line-height: 1.55;
+    max-width: 100%; backdrop-filter: blur(8px);
+  }
+  .chat-msg.user .bubble {
+    background: rgba(240,140,168,0.88); color: #fff;
+    border-bottom-right-radius: 4px;
+    box-shadow: 0 2px 8px rgba(232,96,122,0.2);
+  }
+  .chat-msg.ai .bubble {
+    background: rgba(255,245,248,0.88); color: #5a3e4b;
+    border: 1px solid rgba(240,176,200,0.6);
+    border-bottom-left-radius: 4px;
+    box-shadow: 0 2px 8px rgba(224,160,184,0.15);
+  }
+  .chat-msg.ai .typing { opacity: 0.5; }
+
+  /* Chat - 悬浮输入框 */
+  #chatInputArea {
+    position: absolute; bottom: 20px; left: 16px;
+    width: 44%; display: flex; gap: 8px; z-index: 51;
+  }
+  #chatInput {
+    flex: 1; padding: 10px 14px; border-radius: 20px;
+    border: 1px solid rgba(240,176,200,0.7);
+    background: rgba(255,245,248,0.92);
+    backdrop-filter: blur(8px);
+    color: #5a3e4b; font-size: 15px; outline: none;
+    box-shadow: 0 2px 12px rgba(224,160,184,0.2);
+  }
+  #chatInput:focus { border-color: #f08ca8; background: rgba(255,255,255,0.96); }
+  #chatSendBtn {
+    padding: 10px 16px; border-radius: 20px; border: none;
+    background: rgba(240,140,168,0.9); color: #fff;
+    font-size: 13px; cursor: pointer; white-space: nowrap;
+    backdrop-filter: blur(8px);
+    box-shadow: 0 2px 8px rgba(232,96,122,0.25);
+  }
   #chatSendBtn:disabled { opacity: 0.5; cursor: not-allowed; }
   #chatSendBtn:hover:not(:disabled) { background: #e8607a; }
+
+  /* 字号控制 - 悬浮左下角 */
+  #chatFontCtrl {
+    position: absolute; bottom: 62px; left: 16px;
+    display: flex; gap: 4px; z-index: 51;
+  }
+  #chatFontCtrl button {
+    background: rgba(255,245,248,0.85); border: 1px solid rgba(240,176,200,0.6);
+    border-radius: 8px; color: #e8607a; cursor: pointer;
+    padding: 2px 7px; font-size: 11px; backdrop-filter: blur(4px);
+  }
 
   /* API Key Modal */
   .modal-overlay { display: none; position: fixed; inset: 0; background: rgba(0,0,0,0.4); z-index: 200; align-items: center; justify-content: center; }
@@ -127,22 +169,14 @@
       <button id="logoutBtn" title="退出登录" style="background:none;border:none;cursor:pointer;font-size:12px;color:#e8607a;padding:0 2px;opacity:0.8;">退出</button>
     </div>
     <button id="panelToggle" title="控制面板">⚙</button>
-    <div id="chatPanel">
-      <div id="chatResizeHandle"></div>
-      <div id="chatHeader">
-        <span>Chat</span>
-        <div class="chat-header-actions">
-          <button id="fontDecBtn" title="缩小字号" style="font-size:12px;font-weight:600;">A-</button>
-          <button id="fontIncBtn" title="放大字号" style="font-size:16px;font-weight:600;">A+</button>
-
-          <button id="chatToggleBtn" title="Toggle Chat">▼</button>
-        </div>
-      </div>
-      <div id="chatMessages"></div>
-      <div id="chatInputArea">
-        <input type="text" id="chatInput" placeholder="和草莓软酱聊聊理财..." autocomplete="off" />
-        <button id="chatSendBtn">发送</button>
-      </div>
+    <div id="chatMessages"></div>
+    <div id="chatFontCtrl">
+      <button id="fontDecBtn">A-</button>
+      <button id="fontIncBtn">A+</button>
+    </div>
+    <div id="chatInputArea">
+      <input type="text" id="chatInput" placeholder="和草莓软酱聊聊理财..." autocomplete="off" />
+      <button id="chatSendBtn">发送</button>
     </div>
   </div>
   <div class="right collapsed" id="controls">
@@ -252,7 +286,7 @@ function getChatSystemPrompt() {
   var username = localStorage.getItem('sb_username') || '';
   var extra = '';
   if (username) extra += '\n\n当前用户的名字是：' + username + '，可以偶尔叫一下对方名字，显得亲切。';
-  if (_userSummary) extra += '\n\n关于这位用户，你已经了解到的信息：\n' + _userSummary + '\n\n请自然地运用这些信息，不要刻意复述，像老朋友一样聊天。';
+  if (_userSummary) extra += '\n\n以下是根据历史对话整理的用户信息，仅供参考，以实际对话内容为准，不要主动重复或确认这些信息，更不要把推断当事实：\n' + _userSummary;
   return CHAT_SYSTEM_PROMPT_BASE + extra;
 }
 
@@ -343,8 +377,6 @@ var greetings = [
     });
 
     window.addEventListener('resize', () => resizeModel());
-    const chatObs = new ResizeObserver(() => resizeModel());
-    chatObs.observe(document.getElementById('chatPanel'));
 
     if (window.visualViewport) {
       window.visualViewport.addEventListener('resize', () => {
@@ -467,12 +499,6 @@ document.getElementById('panelToggle').addEventListener('click', () => {
   setTimeout(() => resizeModel(), 350);
 });
 
-document.getElementById('chatToggleBtn').addEventListener('click', () => {
-  const panel = document.getElementById('chatPanel');
-  const btn = document.getElementById('chatToggleBtn');
-  panel.classList.toggle('collapsed');
-  btn.textContent = panel.classList.contains('collapsed') ? '▲' : '▼';
-});
 
 // ========== Lip Sync ==========
 function startLipSync() {
@@ -607,7 +633,7 @@ function updateUserSummary() {
   var recent = chatHistory.slice(-20).map(function(m) {
     return (m.role === 'user' ? '用户' : '草莓软酱') + '：' + m.content;
   }).join('\n');
-  var prompt = '请根据以下对话，提炼关于用户的关键信息（理财偏好、风险倾向、关注市场、持仓、个人情况等），100字以内，只关注用户信息，信息不足返回空字符串。\n\n' + recent;
+  var prompt = '请根据以下对话，提炼用户明确说过的信息（只记录用户亲口说的，不做推断或猜测），100字以内，格式："用户说XXX"。信息不足或不确定请返回空字符串。\n\n' + recent;
   fetch(CHAT_API_URL, {
     method: 'POST',
     headers: { 'Content-Type': 'application/json', 'x-api-key': CHAT_API_KEY, 'anthropic-version': '2023-06-01' },
@@ -731,43 +757,6 @@ document.getElementById('chatInput').focus();
 </script>
 
 <script>
-(function() {
-  var handle = document.getElementById('chatResizeHandle');
-  var panel  = document.getElementById('chatPanel');
-  var dragging = false, startY = 0, startH = 0;
-  handle.addEventListener('mousedown', function(e) {
-    if (panel.classList.contains('collapsed')) return;
-    dragging = true;
-    startY = e.clientY;
-    startH = panel.offsetHeight;
-    document.body.style.userSelect = 'none';
-    e.preventDefault();
-  });
-  document.addEventListener('mousemove', function(e) {
-    if (!dragging) return;
-    var delta = startY - e.clientY;
-    var newH = Math.min(Math.max(startH + delta, 80), window.innerHeight * 0.8);
-    panel.style.height = newH + 'px';
-  });
-  document.addEventListener('mouseup', function() {
-    if (dragging) { dragging = false; document.body.style.userSelect = ''; }
-  });
-  // 触屏支持
-  handle.addEventListener('touchstart', function(e) {
-    if (panel.classList.contains('collapsed')) return;
-    dragging = true;
-    startY = e.touches[0].clientY;
-    startH = panel.offsetHeight;
-    e.preventDefault();
-  }, { passive: false });
-  document.addEventListener('touchmove', function(e) {
-    if (!dragging) return;
-    var delta = startY - e.touches[0].clientY;
-    var newH = Math.min(Math.max(startH + delta, 80), window.innerHeight * 0.8);
-    panel.style.height = newH + 'px';
-  }, { passive: false });
-  document.addEventListener('touchend', function() { dragging = false; });
-})();
 </script>
 
 
