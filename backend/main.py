@@ -166,12 +166,31 @@ import urllib.parse
 
 @app.get("/stock/search")
 def stock_search(key: str):
-    """代理新浪股票搜索，内网无法直接访问新浪"""
+    """代理东方财富股票搜索，返回 {code, market} 供行情查询"""
     try:
-        url = 'https://suggest3.sinajs.cn/suggest/type=11,12&key=' + urllib.parse.quote(key)
-        req = urllib.request.Request(url, headers={'Referer': 'https://finance.sina.com.cn'})
+        url = ('https://searchapi.eastmoney.com/api/suggest/get'
+               '?input=' + urllib.parse.quote(key) +
+               '&type=14&token=D43BF722C8E33BDC906FB84D85E326AB&count=5')
+        req = urllib.request.Request(url, headers={
+            'Referer': 'https://www.eastmoney.com',
+            'User-Agent': 'Mozilla/5.0'
+        })
         with urllib.request.urlopen(req, timeout=5) as resp:
-            return {"data": resp.read().decode('gbk', errors='replace')}
+            data = json.loads(resp.read().decode('utf-8'))
+        items = data.get('QuotationCodeTable', {}).get('Data', [])
+        # 只取A股（MktNum=0沪，1深）
+        results = []
+        for item in items:
+            classify = item.get('Classify', '')
+            if classify != 'AStock':
+                continue
+            code = str(item.get('Code', ''))
+            quote_id = str(item.get('QuoteID', ''))
+            if len(code) == 6 and '.' in quote_id:
+                mkt_num = quote_id.split('.')[0]
+                prefix = 'sh' if mkt_num == '1' else 'sz'
+                results.append({'name': item.get('Name', ''), 'full_code': prefix + code})
+        return {'results': results}
     except Exception as e:
         raise HTTPException(status_code=500, detail=str(e))
 
