@@ -71,9 +71,11 @@
     width: 44%;
     overflow-y: auto; overflow-x: hidden;
     display: flex; flex-direction: column; gap: 8px;
-    z-index: 50; pointer-events: none;
+    z-index: 50; pointer-events: auto;
     padding: 4px 0;
-    justify-content: flex-end;
+  }
+  #chatMessages::before {
+    content: ''; flex: 1 1 auto;
   }
   #chatMessages::-webkit-scrollbar { width: 0; }
   .chat-msg { max-width: 100%; pointer-events: auto; }
@@ -278,7 +280,8 @@ const CHAT_SYSTEM_PROMPT_BASE = `你是草莓软酱，天才理财少女，ESFJ�
 - 不用markdown格式，不用**加粗**、不用#标题、不用列表符号，就像人说话一样自然
 - 先给结论，再解释理由和风险，说完会关心一下对方的想法
 - 不确定的事情坦诚说，但会帮对方想下一步怎么确认
-- 不要自称"草莓软酱"或提及自己的名字`;
+- 不要自称"草莓软酱"或提及自己的名字
+- 提到具体股票时，统一用「名称（代码）」格式，如：贵州茅台（600519）、腾讯控股（00700）、苹果（AAPL）`;
 
 var _userSummary = '';
 
@@ -517,28 +520,128 @@ function stopLipSync() {
 }
 
 // ========== Chat System ==========
+var _userScrolling = false;
+var _scrollTimer = null;
+(function() {
+  var container = document.getElementById('chatMessages');
+  if (container) {
+    container.addEventListener('scroll', function() {
+      var atBottom = container.scrollHeight - container.scrollTop - container.clientHeight < 60;
+      _userScrolling = !atBottom;
+      if (_scrollTimer) clearTimeout(_scrollTimer);
+      if (_userScrolling) {
+        _scrollTimer = setTimeout(function() { _userScrolling = false; }, 2000);
+      }
+    });
+  }
+})();
+
 function appendChatMessage(role, text, isTyping) {
   const container = document.getElementById('chatMessages');
   const msgDiv = document.createElement('div');
   msgDiv.className = 'chat-msg ' + role;
   const bubble = document.createElement('div');
   bubble.className = 'bubble' + (isTyping ? ' typing' : '');
-  bubble.textContent = text || '...';
+  if (role === 'ai' && text && !isTyping) {
+    bubble.innerHTML = renderStockLinks(text.replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;'));
+  } else {
+    bubble.textContent = text || '...';
+  }
   msgDiv.appendChild(bubble);
   container.appendChild(msgDiv);
-  container.scrollTop = container.scrollHeight;
+  if (!_userScrolling) container.scrollTop = container.scrollHeight;
   return msgDiv;
+}
+
+// 常用股票名称→代码映射（用于从公司名自动识别代码）
+var STOCK_NAME_MAP = {
+  '恩华药业':'002262','贵州茅台':'600519','宁德时代':'300750','比亚迪':'002594',
+  '中国平安':'601318','招商银行':'600036','五粮液':'000858','格力电器':'000651',
+  '万科':'000002','中国石油':'601857','中国石化':'600028','工商银行':'601398',
+  '建设银行':'601939','农业银行':'601288','中国银行':'601988','交通银行':'601328',
+  '兴业银行':'601166','浦发银行':'600000','民生银行':'600016','平安银行':'000001',
+  '中信证券':'600030','海天味业':'603288','迈瑞医疗':'300760','药明康德':'603259',
+  '腾讯控股':'00700','阿里巴巴':'09988','美团':'03690','京东':'09618',
+  '苹果':'AAPL','微软':'MSFT','英伟达':'NVDA','特斯拉':'TSLA','谷歌':'GOOGL'
+};
+
+function renderStockLinks(text) {
+  // 只匹配草莓软酱说的"名称（代码）"格式，要求括号内是纯数字或纯大写字母
+  // 前面的名称必须是2-8个汉字或字母，不能以标点开头
+  return text.replace(/(^|[\s，。！？、：；「」【】]|&gt;)([\u4e00-\u9fa5a-zA-Z]{2,8})（(\d{4,6}|[A-Z]{2,5})）/g, function(match, pre, name, code) {
+    var url;
+    if (/^\d{6}$/.test(code)) {
+      var prefix = code.startsWith('6') ? 'sh' : 'sz';
+      url = 'https://finance.sina.com.cn/realstock/company/' + prefix + code + '/nc.shtml';
+    } else if (/^\d{4,5}$/.test(code)) {
+      url = 'https://finance.sina.com.cn/realstock/company/hk' + code.padStart(5,'0') + '/nc.shtml';
+    } else {
+      url = 'https://finance.sina.com.cn/stock/usstock/' + code.toLowerCase() + '.shtml';
+    }
+    return pre + '<a href="' + url + '" target="_blank" style="color:#e8607a;text-decoration:none;border-bottom:1px dotted #f08ca8;" title="查看行情">' + name + '（' + code + '）</a>';
+  });
 }
 
 function updateChatMessage(msgEl, text) {
   const bubble = msgEl.querySelector('.bubble');
-  bubble.textContent = text || '...';
-  if (text) bubble.classList.remove('typing');
+  if (text) {
+    bubble.classList.remove('typing');
+    // AI 消息渲染股票链接，用户消息保持纯文本
+    if (msgEl.classList.contains('ai')) {
+      bubble.innerHTML = renderStockLinks(text.replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;'));
+    } else {
+      bubble.textContent = text;
+    }
+  } else {
+    bubble.textContent = '...';
+  }
   const container = document.getElementById('chatMessages');
-  // 只在已接近底部时自动滚动，避免 streaming 时上下抖动
-  if (container.scrollHeight - container.scrollTop - container.clientHeight < 60) {
+  if (!_userScrolling && container.scrollHeight - container.scrollTop - container.clientHeight < 60) {
     container.scrollTop = container.scrollHeight;
   }
+}
+
+function extractStockCodes(text) {
+  var codes = [];
+  // 匹配括号内明确代码，如（600519）（00700）（AAPL）
+  var bracketMatch = text.match(/（(\d{4,6}|[A-Z]{2,5})）/g);
+  if (bracketMatch) bracketMatch.forEach(function(m) {
+    var c = m.replace(/[（）]/g, '');
+    if (/^\d{6}$/.test(c)) codes.push((c.startsWith('6') ? 'sh' : 'sz') + c);
+    else if (/^\d{4,5}$/.test(c)) codes.push('hk' + c.padStart(5,'0'));
+  });
+  // 从公司名映射查代码
+  Object.keys(STOCK_NAME_MAP).forEach(function(name) {
+    if (text.indexOf(name) !== -1) {
+      var c = STOCK_NAME_MAP[name];
+      if (/^\d{6}$/.test(c)) codes.push((c.startsWith('6') ? 'sh' : 'sz') + c);
+      else if (/^\d{4,5}$/.test(c)) codes.push('hk' + c.padStart(5,'0'));
+      // 美股不走新浪行情接口，跳过
+    }
+  });
+  return [...new Set(codes)];
+}
+
+function fetchStockQuote(codes) {
+  if (!codes.length) return Promise.resolve('');
+  var url = 'https://zoymonster.com/strawberry-api/stock/quote?codes=' + codes.join(',');
+  return fetch(url)
+    .then(function(r) { return r.json(); })
+    .then(function(j) {
+      var t = j.data || '';
+      var lines = [];
+      t.split('\n').forEach(function(line) {
+        var m = line.match(/hq_str_(\w+)="([^"]+)"/);
+        if (!m) return;
+        var parts = m[2].split(',');
+        if (parts.length < 10) return;
+        var name = parts[0], price = parts[3], open = parts[1], prev = parts[2];
+        var change = ((parseFloat(price) - parseFloat(prev)) / parseFloat(prev) * 100).toFixed(2);
+        lines.push(name + ' 最新价' + price + ' 今开' + open + ' 昨收' + prev + ' 涨跌' + change + '%');
+      });
+      return lines.length ? '【实时行情 ' + new Date().toLocaleTimeString('zh-CN') + '】\n' + lines.join('\n') : '';
+    })
+    .catch(function() { return ''; });
 }
 
 async function sendMessage(userText) {
@@ -555,6 +658,10 @@ async function sendMessage(userText) {
   isStreaming = true;
   document.getElementById('chatSendBtn').disabled = true;
 
+  // 检测消息里的股票代码并拉取实时行情
+  var stockCodes = await extractStockCodes(userText);
+  var quoteInfo = stockCodes.length ? await fetchStockQuote(stockCodes) : '';
+
   const aiMsgEl = appendChatMessage('ai', '', true);
   let fullText = '';
 
@@ -569,7 +676,7 @@ async function sendMessage(userText) {
       body: JSON.stringify({
         model: CHAT_MODEL,
         max_tokens: 1024,
-        system: getChatSystemPrompt(),
+        system: getChatSystemPrompt() + (quoteInfo ? '\n\n' + quoteInfo : ''),
         messages: chatHistory,
         stream: true
       })

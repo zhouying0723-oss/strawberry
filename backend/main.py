@@ -159,3 +159,30 @@ def logout(authorization: str = Header(None)):
     tokens.pop(token, None)
     save_json(TOKENS_FILE, tokens)
     return {"message": "已退出"}
+
+
+import urllib.request
+import urllib.parse
+
+@app.get("/stock/search")
+def stock_search(key: str):
+    """代理新浪股票搜索，内网无法直接访问新浪"""
+    try:
+        url = 'https://suggest3.sinajs.cn/suggest/type=11,12&key=' + urllib.parse.quote(key)
+        req = urllib.request.Request(url, headers={'Referer': 'https://finance.sina.com.cn'})
+        with urllib.request.urlopen(req, timeout=5) as resp:
+            return {"data": resp.read().decode('gbk', errors='replace')}
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=str(e))
+
+
+@app.get("/stock/quote")
+def stock_quote(codes: str):
+    """代理新浪实时行情，如 codes=sh600519,sz002262"""
+    try:
+        url = 'https://hq.sinajs.cn/list=' + codes
+        req = urllib.request.Request(url, headers={'Referer': 'https://finance.sina.com.cn'})
+        with urllib.request.urlopen(req, timeout=5) as resp:
+            return {"data": resp.read().decode('gbk', errors='replace')}
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=str(e))
