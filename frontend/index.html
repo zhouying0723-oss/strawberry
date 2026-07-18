@@ -166,6 +166,10 @@
       <div class="error-text" id="errorText"></div>
     </div>
     <div class="drag-hint">Drag model to reposition / Scroll to resize</div>
+    <div id="dateDisplay" style="position:absolute;top:24px;left:56%;transform:translateX(-50%);z-index:50;text-align:left;pointer-events:none;line-height:1.4;">
+      <div id="dateText" style="font-size:15px;color:#e8607a;opacity:0.85;font-weight:600;"></div>
+      <div id="weekText" style="font-size:12px;color:#c99;margin-top:2px;"></div>
+    </div>
     <div style="position:absolute;top:16px;right:60px;display:flex;align-items:center;gap:6px;z-index:60;">
       <span id="usernameTag" style="font-size:12px;color:#e8607a;opacity:0.85;white-space:nowrap;"></span>
       <button id="logoutBtn" title="退出登录" style="background:none;border:none;cursor:pointer;font-size:12px;color:#e8607a;padding:0 2px;opacity:0.8;">退出</button>
@@ -845,6 +849,21 @@ if (window.visualViewport) {
 }
 
 // 显示用户名
+// 更新日期显示
+function updateDate() {
+  var now = new Date();
+  var weeks = ['星期日','星期一','星期二','星期三','星期四','星期五','星期六'];
+  var y = now.getFullYear();
+  var m = String(now.getMonth()+1).padStart(2,'0');
+  var d = String(now.getDate()).padStart(2,'0');
+  var dateEl = document.getElementById('dateText');
+  var weekEl = document.getElementById('weekText');
+  if (dateEl) dateEl.textContent = y + '年' + m + '月' + d + '日';
+  if (weekEl) weekEl.textContent = weeks[now.getDay()];
+}
+updateDate();
+setInterval(updateDate, 60000);
+
 var _sbUsername = localStorage.getItem('sb_username') || '';
 if (_sbUsername) document.getElementById('usernameTag').textContent = _sbUsername;
 
