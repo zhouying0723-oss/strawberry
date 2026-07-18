@@ -166,13 +166,13 @@
       <div class="error-text" id="errorText"></div>
     </div>
     <div class="drag-hint">Drag model to reposition / Scroll to resize</div>
-    <div id="dateDisplay" style="position:absolute;top:24px;left:56%;transform:translateX(-50%);z-index:50;text-align:left;pointer-events:none;line-height:1.4;">
+    <div id="dateDisplay" style="position:absolute;top:24px;left:50%;transform:translateX(-50%);z-index:50;text-align:center;pointer-events:none;line-height:1.4;">
       <div id="dateText" style="font-size:15px;color:#e8607a;opacity:0.85;font-weight:600;"></div>
       <div id="weekText" style="font-size:12px;color:#c99;margin-top:2px;"></div>
     </div>
     <div style="position:absolute;top:16px;right:60px;display:flex;align-items:center;gap:6px;z-index:60;">
-      <span id="usernameTag" style="font-size:12px;color:#e8607a;opacity:0.85;white-space:nowrap;"></span>
-      <button id="logoutBtn" title="退出登录" style="background:none;border:none;cursor:pointer;font-size:12px;color:#e8607a;padding:0 2px;opacity:0.8;">退出</button>
+      <span id="usernameTag" style="font-size:16px;color:#e8607a;opacity:0.85;white-space:nowrap;"></span>
+      <button id="logoutBtn" title="退出登录" style="background:none;border:none;cursor:pointer;font-size:16px;color:#e8607a;padding:0 2px;opacity:0.8;">退出</button>
     </div>
     <button id="panelToggle" title="控制面板">⚙</button>
     <div id="chatMessages"></div>
@@ -903,6 +903,10 @@ document.getElementById('chatInput').focus();
     sz = Math.min(MAX, Math.max(MIN, sz));
     document.getElementById('chatMessages').style.fontSize = sz + 'px';
     document.getElementById('chatInput').style.fontSize = sz + 'px';
+    var ut = document.getElementById('usernameTag');
+    var lb = document.getElementById('logoutBtn');
+    if (ut) ut.style.fontSize = sz + 'px';
+    if (lb) lb.style.fontSize = sz + 'px';
     localStorage.setItem('chat_font_size', sz);
     return sz;
   }
